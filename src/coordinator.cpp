@@ -1,72 +1,91 @@
-#include <HardwareSerial.h>         // Include HardwareSerial library for communication
+#include <HardwareSerial.h>         
 #include <Arduino.h> 
 
-HardwareSerial XBee(2);             // Use Serial2 (UART2)
+HardwareSerial XBee(2);             
  
-bool started = false;               // True when start marker is detected
-bool ended = false;                 // True when end marker is detected
-char incomingByte;                  // Storage for each byte read
-char msg[8];                        // Increased buffer size for larger numbers
-int bufferPos = 0;                  // Current position in the array
+bool started = false;               
+bool ended = false;                 
+char incomingByte;                  
+char msg[8];                        
+int bufferPos = 0;                  
  
 void setup() {
-  Serial.begin(115200);               // Start communication with the PC for debugging
-  XBee.begin(9600, SERIAL_8N1, 25, 26);  // Configure Serial2: RX=25, TX=26
+  Serial.begin(115200);               
+  delay(3000);  // Wait for Serial Monitor
   
-  Serial.println("Coordinator started, waiting for data...");
+  Serial.println("=============================");
+  Serial.println("COORDINATOR STARTING...");
+  Serial.println("=============================");
+  
+  XBee.begin(9600, SERIAL_8N1, 25, 26);  
   delay(1000);
+  
+  Serial.println("XBee initialized on pins 25(RX), 26(TX)");
+  Serial.println("Coordinator ready, waiting for data...");
+  Serial.println("=============================");
 }
  
 void loop() {
-  delay(5000);
-  if (!XBee.available()){
-    Serial.println("No data available from XBee.");
+  static unsigned long lastCheck = 0;
+  static unsigned long messageCount = 0;
+  
+  // Print status every 5 seconds
+  if (millis() - lastCheck > 5000) {
+    Serial.print("Status: Alive | Messages received: ");
+    Serial.print(messageCount);
+    Serial.print(" | XBee available: ");
+    Serial.println(XBee.available());
+    lastCheck = millis();
   }
-  // Add debugging to see if any data is coming in
-  else if (XBee.available() > 0) {
-    Serial.println("Data available from XBee!");
   
-  
-    while (XBee.available() > 0) {    // Check if there is data available from the XBee
-      incomingByte = XBee.read();     // Read the incoming byte
+  if (XBee.available() > 0) {
+    Serial.println(">>> DATA AVAILABLE FROM XBEE! <<<");
+    
+    while (XBee.available() > 0) {    
+      incomingByte = XBee.read();     
       
-      // Debug: print every byte received
-      Serial.print("Received byte: ");
+      Serial.print("Byte: '");
       Serial.print(incomingByte);
-      Serial.print(" (");
+      Serial.print("' (ASCII: ");
       Serial.print((int)incomingByte);
       Serial.println(")");
   
-      if (incomingByte == '<') {      // Detect start of the message
+      if (incomingByte == '<') {      
         started = true;
-        bufferPos = 0;                // Reset buffer position
-        msg[bufferPos] = '\0';        // Clear the buffer
-        Serial.println("Start marker detected");
+        bufferPos = 0;                
+        msg[bufferPos] = '\0';        
+        Serial.println(">>> START MARKER DETECTED <<<");
       }
-      else if (incomingByte == '>') { // Detect end of the message
+      else if (incomingByte == '>') { 
         ended = true;
-        Serial.println("End marker detected");
-        break;                        // Stop reading, process the message
+        Serial.println(">>> END MARKER DETECTED <<<");
+        break;                        
       }
-      else if (started && bufferPos < 7) {    // Store the byte in msg array if message has started
+      else if (started && bufferPos < 7) {    
         msg[bufferPos] = incomingByte;
-        bufferPos++;                  // Increment buffer position
-        msg[bufferPos] = '\0';        // Null terminate the string
+        bufferPos++;                  
+        msg[bufferPos] = '\0';        
       }
     }
   
-    if (started && ended) {                // If a complete message was received, process it
-      int value = atoi(msg);               // Convert the buffer to an integer
-      Serial.print("Complete message received: '");
+    if (started && ended) {                
+      int value = atoi(msg);               
+      messageCount++;
+      Serial.println("=============================");
+      Serial.print("COMPLETE MESSAGE #");
+      Serial.print(messageCount);
+      Serial.print(": '");
       Serial.print(msg);
       Serial.print("' = ");
       Serial.println(value);
+      Serial.println("=============================");
   
-      started = false;                     // Reset for the next message
+      started = false;                     
       ended = false;
-      bufferPos = 0;                       // Reset buffer position for next message
+      bufferPos = 0;                       
     }
-    
-    delay(100);  // Small delay to prevent overwhelming the serial monitor
   }
+  
+  delay(100);  
 }
+

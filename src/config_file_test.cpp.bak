@@ -1,0 +1,46 @@
+#include <HardwareSerial.h>
+
+HardwareSerial XBee(2);
+
+void checkATCommand(String command, String description) {
+  Serial.print(description + ": ");
+  XBee.println(command);
+  delay(500);
+  
+  String response = "";
+  while (XBee.available()) {
+    response += (char)XBee.read();
+  }
+  Serial.println(response);
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(3000);
+  
+  XBee.begin(9600, SERIAL_8N1, 25, 26);
+  
+  Serial.println("=============================");
+  Serial.println("XBee Configuration Check");
+  Serial.println("=============================");
+  delay(1000);
+  
+  // Enter AT command mode
+  XBee.print("+++");
+  delay(1500);
+  
+  // Clear any existing response
+  while (XBee.available()) XBee.read();
+  
+  // Check multiple settings
+  checkATCommand("ATID", "PAN ID");
+  checkATCommand("ATMY", "My Address");  
+  checkATCommand("ATDL", "Destination Address");
+  checkATCommand("ATCH", "Channel");
+  
+  Serial.println("=============================");
+}
+
+void loop() {
+  delay(1000);
+}

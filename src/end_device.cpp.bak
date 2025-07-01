@@ -1,7 +1,9 @@
 #include <HardwareSerial.h>          
 #include <Arduino.h>                 
 
-HardwareSerial XBee(2);              
+HardwareSerial XBee(2);   
+int LED_PIN = 33;
+int time_check = random(1000, 15000);           
 
 void setup() {
   Serial.begin(115200);                
@@ -11,13 +13,18 @@ void setup() {
   Serial.println("END DEVICE STARTING...");
   Serial.println("=============================");
   
+  // Pin setup
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);  
   XBee.begin(9600, SERIAL_8N1, 25, 26);  
   delay(1000);
-  
-  Serial.println("XBee initialized on pins 25(RX), 26(TX)");
-  randomSeed(analogRead(0));         
-  Serial.println("End device ready to send data...");
-  Serial.println("=============================");
+}
+
+void blinkLED() {
+  digitalWrite(LED_PIN, HIGH);  
+  delay(1000);
+  digitalWrite(LED_PIN, LOW);   
+  delay(1000);
 }
 
 void loop() {
@@ -29,14 +36,14 @@ void loop() {
   XBee.print('>');                 
   
   // Detailed logging
-  Serial.println("=============================");
-  Serial.print("Sending: <");
-  Serial.print(randomNumber);
-  Serial.println(">");
-  Serial.print("Bytes sent: ");
-  Serial.print(XBee.availableForWrite());
-  Serial.println(" buffer space available");
-  Serial.println("=============================");
+  // Serial.println("=============================");
+  Serial.print("Sending: ");
+  Serial.println(randomNumber);
+  // Serial.print("Bytes sent: ");
+  // Serial.print(XBee.availableForWrite());
+  // Serial.println(" buffer space available");
+  // Serial.println("=============================");
 
-  delay(3000);  // Send every 3 seconds
+  blinkLED(); 
+  delay(time_check);  
 }

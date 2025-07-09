@@ -4,7 +4,7 @@
                 
 // Sensor Pins
 int TEMP_PIN = 27; 
-int LED_PIN = 33;
+int LED_PIN = 32;
 
 // Initialization
 HardwareSerial XBee(2);
@@ -27,6 +27,13 @@ int dataList[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 1000};
 int listSize = sizeof(dataList) / sizeof(dataList[0]); 
 int currentIndex = 0;
 bool to_run = true;
+
+void blinkLED() {
+  digitalWrite(LED_PIN, HIGH);  
+  delay(1000);
+  digitalWrite(LED_PIN, LOW);   
+  delay(1000);
+}
 
 void setup() {
   Serial.begin(115200);                
@@ -53,16 +60,10 @@ void setup() {
     if(i < listSize - 1) Serial.print(", ");
   }
   Serial.println();
+  blinkLED(); 
   delay(1000);
 }
 
-void blinkLED() {
-  digitalWrite(LED_PIN, HIGH);  
-  delay(1000);
-  digitalWrite(LED_PIN, LOW);   
-  delay(1000);
-}
-   
 SensorData readAllSensor(){
     SensorData data;
     data.temperature = readTemperature();
@@ -115,7 +116,9 @@ void loop() {
     // String message = "<" + String(send_number) + ">";
     // XBee.print(message);
     XBee.print('<');                   
-    XBee.print(send_number);          
+    XBee.print('The number is: ' + send_number);  
+    XBee.print('The humidity is: ' + sensorData.humidity);  
+    XBee.print('The temperature is: ' + sensorData.temperature);  
     XBee.print('>');                 
     
     blinkLED(); 

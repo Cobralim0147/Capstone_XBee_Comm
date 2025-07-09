@@ -1,0 +1,132 @@
+#include <HardwareSerial.h>          
+#include <Arduino.h> 
+#include <DHT.h>                
+                
+// Sensor Pins
+int TEMP_PIN = 27; 
+int LED_PIN = 33;
+
+// Initialization
+HardwareSerial XBee(2);
+DHT dht(TEMP_PIN, DHT11);
+
+// Function Variables
+float readTemperature();
+float readHumidity(); 
+
+// Data Variables
+struct SensorData {
+    float temperature;
+    float humidity;
+    bool isValid;
+};
+ 
+// Constants
+int time_check = random(5000, 15000); 
+int dataList[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 1000};
+int listSize = sizeof(dataList) / sizeof(dataList[0]); 
+int currentIndex = 0;
+bool to_run = true;
+
+void setup() {
+  Serial.begin(115200);                
+  delay(3000);  
+  
+  Serial.println("=============================");
+  Serial.println("END DEVICE STARTING...");
+  Serial.println("=============================");
+  
+  // Pin setup
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(TEMP_PIN, INPUT);
+  digitalWrite(LED_PIN, LOW); 
+
+  // Initialization
+  XBee.begin(9600, SERIAL_8N1, 25, 26);
+  dht.begin();   
+  delay(1000);
+
+  //Print the list of data will be sent
+  Serial.print("Data list: ");
+  for(int i = 0; i < listSize; i++) {
+    Serial.print(dataList[i]);
+    if(i < listSize - 1) Serial.print(", ");
+  }
+  Serial.println();
+  delay(1000);
+}
+
+void blinkLED() {
+  digitalWrite(LED_PIN, HIGH);  
+  delay(1000);
+  digitalWrite(LED_PIN, LOW);   
+  delay(1000);
+}
+   
+SensorData readAllSensor(){
+    SensorData data;
+    data.temperature = readTemperature();
+    data.humidity = readHumidity();
+    data.isValid = !isnan(data.temperature) && !isnan(data.humidity);
+    return data;
+}
+
+float readTemperature() {
+    float temp = dht.readTemperature();
+    if (isnan(temp)) {
+        Serial.println("Warning: Failed to read temperature");
+        return NAN;
+    }
+    return temp;
+}
+
+float readHumidity() {
+    float humidity = dht.readHumidity();
+    if (isnan(humidity)) {
+        Serial.println("Warning: Failed to read humidity");
+        return NAN;
+    }
+    return humidity;
+}
+
+void loop() {
+  while (to_run == true){
+    // Read the data from the DHT sensor and get the current number to send
+    int send_number = dataList[currentIndex];  
+    SensorData sensorData = readAllSensor();
+
+    // Check if the sensor data is valid
+    if (!sensorData.isValid) {
+      Serial.println("Error: Invalid sensor data");
+      return; 
+    }
+    else {
+      Serial.print("Temperature: ");
+      Serial.print(sensorData.temperature);
+      Serial.print(" °C, Humidity: ");
+      Serial.print(sensorData.humidity);
+      Serial.println(" %");
+      // Detailed logging
+      Serial.print("Sending: ");
+      Serial.println(send_number);
+    }
+
+    // Send the message
+    // String message = "<" + String(send_number) + ">";
+    // XBee.print(message);
+    XBee.print('<');                   
+    XBee.print(send_number);          
+    XBee.print('>');                 
+    
+    blinkLED(); 
+    currentIndex++; 
+    delay(time_check);  
+
+    if (currentIndex == listSize){
+      Serial.println("=============================");
+      to_run = false;  
+      Serial.println("All data sent. Stopping the device.");
+    }
+  }   
+}
+ 

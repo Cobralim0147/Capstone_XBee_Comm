@@ -8,6 +8,14 @@ bool started = false;
 bool ended = false;
 String message = "";
 
+
+void blinkLED() {
+  digitalWrite(LED_PIN, HIGH);  
+  delay(1000);
+  digitalWrite(LED_PIN, LOW);   
+  delay(1000);
+}
+
 void setup() {
   Serial.begin(115200);               
   delay(3000);  
@@ -22,19 +30,14 @@ void setup() {
 
   XBee.begin(9600, SERIAL_8N1, 25, 26);  
   delay(1000);
-}
-
-void blinkLED() {
-  digitalWrite(LED_PIN, HIGH);  
-  delay(1000);
-  digitalWrite(LED_PIN, LOW);   
-  delay(1000);
+  blinkLED();
 }
 
 void loop() {
   while (XBee.available() > 0) {
+    Serial.println("Data available from XBee");
     char incomingByte = XBee.read();
-    
+
     if (incomingByte == '<') {
       started = true;
       ended = false;
@@ -60,8 +63,4 @@ void loop() {
     ended = false;
     message = "";
   }
-  // else if (!started) {
-  //   Serial.println("No message received");
-  // }
-  
 }

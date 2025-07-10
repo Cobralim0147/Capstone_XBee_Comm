@@ -112,14 +112,12 @@ void loop() {
       Serial.println(send_number);
     }
 
-    // Send the message
-    // String message = "<" + String(send_number) + ">";
-    // XBee.print(message);
-    XBee.print('<');                   
-    XBee.print('The number is: ' + send_number);  
-    XBee.print('The humidity is: ' + sensorData.humidity);  
-    XBee.print('The temperature is: ' + sensorData.temperature);  
-    XBee.print('>');                 
+    // Send the message in proper format
+    String message = "<Number: " + String(send_number) + 
+                    ", Temperature: " + String(sensorData.temperature) + " °C" +
+                    ", Humidity: " + String(sensorData.humidity) + " %>";
+    
+    XBee.print(message);
     
     blinkLED(); 
     currentIndex++; 
@@ -132,4 +130,3 @@ void loop() {
     }
   }   
 }
- 

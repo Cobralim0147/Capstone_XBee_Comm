@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "*.bak": "cpp"
+        "*.bak": "cpp",
+        "system_error": "cpp"
     }
 }

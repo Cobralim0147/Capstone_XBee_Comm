@@ -8,10 +8,7 @@ int LED_PIN = 33;
 // Global variables
 float temperature = 0.0;
 float humidity = 0.0;
-int receivedNumber = 0;
-bool tempFound = false;
-bool humFound = false;
-bool numberFound = false;
+int receivedNumber = 0; 
 bool started = false;
 bool ended = false;
 String message = "";
@@ -45,7 +42,7 @@ void setup() {
 
 void loop() {
   while (XBee.available() > 0) {
-    Serial.println("Data available from XBee");
+    // Serial.println("Data available from XBee");
     char incomingByte = XBee.read();
 
     if (incomingByte == '<') {
@@ -62,7 +59,7 @@ void loop() {
     }
   }
   
-  if (started && ended) {
+ if (started && ended) {
     // Complete message received
     blinkLED();
     
@@ -70,46 +67,32 @@ void loop() {
     Serial.print("Raw message: ");
     Serial.println(message);
     
-    // Find number
-    int numIndex = message.indexOf("Number: ");
-    if (numIndex != -1) {
-      int numStart = numIndex + 8;
-      int numEnd = message.indexOf(",", numStart);
-      if (numEnd == -1) numEnd = message.indexOf(" ", numStart);
-      if (numEnd == -1) numEnd = message.length();
-      
-      if (numEnd != -1) {
-        receivedNumber = message.substring(numStart, numEnd).toInt();
-        numberFound = true;
-      }
+    // Convert String to char array for C-style parsing
+    char msg[message.length() + 1];
+    message.toCharArray(msg, message.length() + 1);
+    
+    // Extract number, temperature and humidity using C-style approach
+    char* numPtr = strstr(msg, "N:");          // Find "N:" in message
+    char* tempPtr = strstr(msg, "T:");         // Find "T:" in message
+    char* humPtr = strstr(msg, "H:");          // Find "H:" in message
+    
+    bool numberFound = false;
+    bool tempFound = false;
+    bool humFound = false;
+    
+    if (numPtr) {
+      receivedNumber = atoi(numPtr + 2);       
+      numberFound = true;
     }
     
-    // Find temperature
-    int tempIndex = message.indexOf("Temperature: ");
-    if (tempIndex != -1) {
-      int tempStart = tempIndex + 13;
-      int tempEnd = message.indexOf(" °C", tempStart);
-      if (tempEnd == -1) tempEnd = message.indexOf(",", tempStart);
-      if (tempEnd == -1) tempEnd = message.length();
-      
-      if (tempEnd != -1) {
-        temperature = message.substring(tempStart, tempEnd).toFloat();
-        tempFound = true;
-      }
+    if (tempPtr) {
+      temperature = atof(tempPtr + 2);         
+      tempFound = true;
     }
     
-    // Find humidity
-    int humIndex = message.indexOf("Humidity: ");
-    if (humIndex != -1) {
-      int humStart = humIndex + 10;
-      int humEnd = message.indexOf(" %", humStart);
-      if (humEnd == -1) humEnd = message.indexOf(",", humStart);
-      if (humEnd == -1) humEnd = message.length();
-      
-      if (humEnd != -1) {
-        humidity = message.substring(humStart, humEnd).toFloat();
-        humFound = true;
-      }
+    if (humPtr) {
+      humidity = atof(humPtr + 2);            
+      humFound = true;
     }
     
     // Display results
@@ -128,7 +111,7 @@ void loop() {
       Serial.println(" %");
     }
     
-    if (!tempFound && !humFound && !numberFound) {
+    if (!numberFound && !tempFound && !humFound) {
       Serial.println("Error: Could not parse any data from message");
     }
     

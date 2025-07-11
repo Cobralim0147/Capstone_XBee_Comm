@@ -113,11 +113,13 @@ void loop() {
     }
 
     // Send the message in proper format
-    String message = "<Number: " + String(send_number) + 
-                    ", Temperature: " + String(sensorData.temperature) + " °C" +
-                    ", Humidity: " + String(sensorData.humidity) + " %>";
-    
-    XBee.print(message);
+    XBee.print("<N:");
+    XBee.print(send_number);
+    XBee.print(",T:");
+    XBee.print(sensorData.temperature);
+    XBee.print(",H:");
+    XBee.print(sensorData.humidity);
+    XBee.print(">");
     
     blinkLED(); 
     currentIndex++; 

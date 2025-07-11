@@ -1,9 +1,23 @@
 // Library
 #include <HardwareSerial.h>         
-#include <Arduino.h> 
+#include <WiFiManager.h> 
+#include <Arduino.h>
+#include <Firebase_ESP_Client.h> 
+#include <DHT.h>
+#include <addons/TokenHelper.h>
+#include <addons/RTDBHelper.h>
 
-// Pin layout          
-int LED_PIN = 33;
+//Firebase Connection Details
+#define API_KEY "AIzaSyButBd0X-tsXFqJzSyFGpdPzp7H8mXsSkg"
+#define FIREBASE_PROJECT_ID "sprout-explorer-r8c5ye"
+#define DATABASE_URL "https://sprout-explorer-r8c5ye-default-rtdb.firebaseio.com/"
+#define USER_EMAIL "sproutexplorer@gmail.com"
+#define USER_PASSWORD "launchx2024"
+
+// Constants
+#define SENSOR_NUMBER 13
+#define WIFI_CONNECT_TIMEOUT 30000
+#define LED_PIN 33
 
 // Global variables
 float temperature = 0.0;
@@ -12,15 +26,131 @@ int receivedNumber = 0;
 bool started = false;
 bool ended = false;
 String message = "";
+unsigned long wifiConnectStart = 0;
+
+// State variables
+bool firebaseConnected = false;
+String documentPath;
+int retryCount = 0;
 
 // Initialization
 HardwareSerial XBee(2);   
+
+// Firebase variables
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
 
 void blinkLED() {
   digitalWrite(LED_PIN, HIGH);  
   delay(1000);
   digitalWrite(LED_PIN, LOW);   
   delay(1000);
+}
+
+void indicatorBlink(int times, int delayTime) {
+    for (int i = 0; i < times; i++) {
+        digitalWrite(LED_PIN, LOW);
+        delay(delayTime);
+        digitalWrite(LED_PIN, HIGH);
+        if (i < times - 1) delay(delayTime);
+    }
+}
+
+bool uploadToFirebase(float temp, float humid) {
+    // Validate sensor readings (equivalent to your original validation)
+    if (isnan(temp) || isnan(humid)) {
+        Serial.println("Failed to read sensor data.");
+        return false;
+    }
+    
+    String documentPath = String("/plants/SE_") + String(SENSOR_NUMBER);
+    FirebaseJson content;
+    
+    // Set fields (equivalent format to your original)
+    content.set("fields/temperature/doubleValue", String(temp, 2));
+    content.set("fields/humidity/doubleValue", String(humid, 2));
+    content.set("fields/moisture/doubleValue", String(47, 2));
+    content.set("fields/light/doubleValue", String(47, 2));
+    
+    Serial.println("Uploading to Firebase...");
+    
+    // Single efficient call instead of 4 separate calls
+    if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", 
+                                        documentPath.c_str(), content.raw(), 
+                                        "temperature,humidity,moisture,light")) {
+        Serial.println("Firebase upload successful");
+        return true;
+    } else {
+        Serial.print("Firebase upload failed: ");
+        Serial.println(fbdo.errorReason());
+        return false;
+    }
+}
+
+void setupWiFi() {
+    WiFi.mode(WIFI_STA);
+    WiFiManager wm;
+    
+    // Set timeout for connection attempts
+    wm.setConnectTimeout(WIFI_CONNECT_TIMEOUT / 1000);
+    
+    Serial.println("Connecting to WiFi...");
+    wifiConnectStart = millis();
+    
+    while (WiFi.status() != WL_CONNECTED) {
+        indicatorBlink(1, 500); 
+
+        String apName = "SE_" + String(SENSOR_NUMBER);
+        bool connected = wm.autoConnect(apName.c_str(), "password");
+        
+        if (connected) {
+            Serial.println("WiFi connected successfully!");
+            Serial.print("IP address: ");
+            Serial.println(WiFi.localIP());
+            break;
+        } else if (millis() - wifiConnectStart > WIFI_CONNECT_TIMEOUT) {
+            Serial.println("WiFi connection timeout");
+        }
+        
+        delay(1000);
+    }
+}
+
+void setupFirebase() {
+    //SETUP FIREBASE 
+    Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
+
+    //Firebase Configurations
+    config.api_key = API_KEY;
+    auth.user.email = USER_EMAIL;
+    auth.user.password = USER_PASSWORD;
+    config.database_url = DATABASE_URL;
+
+    //Token status callback
+    config.token_status_callback = tokenStatusCallback;
+
+    //Initialize Firebase
+    Firebase.begin(&config, &auth);
+    Firebase.reconnectNetwork(true);
+
+    //Set buffer sizes for better performance
+    fbdo.setBSSLBufferSize(4096, 1024);
+
+    //Set decimal precision
+    Firebase.setDoubleDigits(5);
+
+    //Wait for authentication
+    Serial.print("Authenticating with Firebase...");
+    while (auth.token.uid == "") {
+      Serial.print(".");
+      delay(1000);
+    }
+    Serial.println();
+    Serial.println("Firebase authentication successful!");
+    Serial.print("User UID: ");
+    Serial.println(auth.token.uid.c_str());
+    firebaseConnected = true;
 }
 
 void setup() {
@@ -35,8 +165,18 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);  
 
+  //Setup XBee Serial
   XBee.begin(9600, SERIAL_8N1, 25, 26);  
-  delay(1000);
+
+  // Setup WiFi and Firebase
+  setupWiFi();
+  setupFirebase();
+  
+  // Create document path
+  documentPath = "/plants/" + String(SENSOR_NUMBER);
+  Serial.println("Setup complete. Starting monitoring...");
+
+  delay(2000); 
   blinkLED();
 }
 
@@ -64,8 +204,8 @@ void loop() {
     blinkLED();
     
     Serial.println("=============================");
-    Serial.print("Raw message: ");
-    Serial.println(message);
+    // Serial.print("Raw message: ");
+    // Serial.println(message);
     
     // Convert String to char array for C-style parsing
     char msg[message.length() + 1];
@@ -94,7 +234,14 @@ void loop() {
       humidity = atof(humPtr + 2);            
       humFound = true;
     }
-    
+
+    //upload data to Firebase
+    if (firebaseConnected) {
+      if (uploadToFirebase(temperature, humidity)) {}
+    } else {
+      Serial.println("Firebase not connected. Skipping upload.");
+    }
+
     // Display results
     if (numberFound) {
       Serial.print("Received Number: ");

@@ -1,0 +1,75 @@
+___________________________________________
+Part 1: Coordinator Device
+
+1: Begin setup
+2: Initialize serial and XBee communication
+3: Setup LED pin
+4: Connect to WiFi using WiFiManager
+5: Authenticate and connect to Firebase
+6: Set document path for sensor node
+
+7: Loop forever
+    // Check for incoming XBee message
+    8: if message starts with '<'
+        9: Start capturing message
+    10: if message ends with '>'
+        11: Mark message as complete
+
+    // Parse the received message
+    12: Extract sensor number from message
+    13: Extract temperature from message
+    14: Extract humidity from message
+
+    // Upload to Firebase
+    15: if Firebase is connected
+        16: Upload temperature, humidity, and number
+        17: if upload success
+            18: Print success message
+        19: else
+            20: Print upload error
+
+    // Print data received
+    21: Display number, temperature, and humidity
+
+    // Reset for next message
+    22: Clear flags and message buffer
+23: Repeat loop
+___________________________________________
+Part 2: End Device
+
+1: Begin setup
+2: Initialize serial and XBee communication
+3: Initialize DHT sensor
+4: Configure LED and temperature pins
+5: Print the data list that will be sent
+
+6: while still running
+    // Read the next number from the list
+    7:Get current number from data list
+    8:Read temperature and humidity from DHT sensor
+    
+    // Validate data
+    9:if data is invalid
+        10:Print warning and skip
+    11:else
+        12:Print temperature, humidity, and number
+
+    // Send data over XBee
+    13:Send formatted message: "<N:number,T:temp,H:humidity>"
+
+    // Update and wait
+    14:Blink LED
+    15:Move to next number
+    16:Wait for random time between 5–15 seconds
+    
+    // End condition
+    17:if all data has been sent
+        18:Print done message and stop loop
+19:end while
+___________________________________________
+
+
+
+
+
+

@@ -22,7 +22,7 @@ struct SensorData {
 };
  
 // Constants
-int time_check = random(5000, 15000); 
+int time_check = random(5000, 15000); // Random delay between 5 to 15 seconds
 int dataList[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 1000};
 int listSize = sizeof(dataList) / sizeof(dataList[0]); 
 int currentIndex = 0;

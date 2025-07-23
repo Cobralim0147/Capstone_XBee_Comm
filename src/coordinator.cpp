@@ -8,11 +8,11 @@
 #include <addons/RTDBHelper.h>
 
 //Firebase Connection Details
-#define API_KEY "AIzaSyButBd0X-tsXFqJzSyFGpdPzp7H8mXsSkg"
-#define FIREBASE_PROJECT_ID "sprout-explorer-r8c5ye"
-#define DATABASE_URL "https://sprout-explorer-r8c5ye-default-rtdb.firebaseio.com/"
-#define USER_EMAIL "sproutexplorer@gmail.com"
-#define USER_PASSWORD "launchx2024"
+#define API_KEY ""
+#define FIREBASE_PROJECT_ID ""
+#define DATABASE_URL ""
+#define USER_EMAIL ""
+#define USER_PASSWORD ""
 
 // Constants
 #define SENSOR_NUMBER 13
